@@ -1,0 +1,65 @@
+/*
+  Project: Smart Dustbin using ESP32
+  Sensor : Ultrasonic (HC-SR04)
+  Output : Servo Motor
+*/
+
+#include <ESP32Servo.h>
+
+#define TRIG_PIN 17
+#define ECHO_PIN 16
+#define SERVO_PIN 14
+
+Servo dustbinServo;
+
+long duration;
+int distance;
+bool lidOpen = false;   // Track lid state
+
+void setup() {
+  Serial.begin(9600);
+
+  pinMode(TRIG_PIN, OUTPUT);
+  pinMode(ECHO_PIN, INPUT);
+
+  dustbinServo.attach(SERVO_PIN);
+  dustbinServo.write(0);   // Lid initially closed
+
+  Serial.println("Smart Dustbin System Started");
+}
+
+void loop() {
+  // Send ultrasonic pulse
+  digitalWrite(TRIG_PIN, LOW);
+  delayMicroseconds(2);
+  digitalWrite(TRIG_PIN, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(TRIG_PIN, LOW);
+
+  // Measure echo time
+  duration = pulseIn(ECHO_PIN, HIGH);
+
+  // Calculate distance
+  distance = duration * 0.034 / 2;
+
+  Serial.print("Distance: ");
+  Serial.print(distance);
+  Serial.println(" cm");
+
+  // Open lid if hand detected
+  if (distance > 0 && distance <= 15 && !lidOpen) {
+    dustbinServo.write(90);
+    Serial.println("Hand detected → Lid OPEN");
+    lidOpen = true;
+    delay(3000);   // Keep lid open
+  }
+
+  // Close lid when no object nearby
+  if (distance > 15 && lidOpen) {
+    dustbinServo.write(0);
+    Serial.println("No hand → Lid CLOSED");
+    lidOpen = false;
+  }
+
+  delay(500);
+}
